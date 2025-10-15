@@ -17,6 +17,8 @@ export default function Wishlist() {
     const [popupProduct, setPopupProduct] = useState<any>(null)
     const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set())
     const [cartIds, setCartIds] = useState<Set<string>>(new Set())
+    const [showLoginPopup, setShowLoginPopup] = useState(false)
+    const [loginMessage, setLoginMessage] = useState('')
     const router = useRouter()
 
     useEffect(() => {
