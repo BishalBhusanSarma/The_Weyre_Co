@@ -46,11 +46,11 @@ export default function PaymentCallback() {
     }
 
     return (
-        <div className="min-h-screen bg-black">
+        <div className="min-h-screen bg-black flex flex-col">
             <Navbar />
 
-            <div className="max-w-2xl mx-auto px-4 py-12 md:py-20">
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 md:p-12 text-center">
+            <div className="flex-1 flex items-center justify-center px-4 py-12">
+                <div className="max-w-2xl w-full bg-gray-900 border border-gray-800 rounded-2xl p-8 md:p-12 text-center">
                     {status === 'loading' && (
                         <>
                             <div className="w-20 h-20 mx-auto mb-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
