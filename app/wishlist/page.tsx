@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar'
 import AddToCartPopup from '@/components/AddToCartPopup'
 import ProductCard from '@/components/ProductCard'
 import Footer from '@/components/Footer'
+import LoginRequiredPopup from '@/components/LoginRequiredPopup'
 
 export default function Wishlist() {
     const [wishlistItems, setWishlistItems] = useState<any[]>([])
@@ -154,6 +155,12 @@ export default function Wishlist() {
                 type={popupType}
                 product={popupProduct}
                 alreadyAdded={popupProduct?.alreadyAdded}
+            />
+
+            <LoginRequiredPopup
+                show={showLoginPopup}
+                onClose={() => setShowLoginPopup(false)}
+                message={loginMessage}
             />
 
             <div className="max-w-7xl mx-auto px-4 py-6 md:py-12">
