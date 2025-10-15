@@ -15,6 +15,7 @@ export default function ProductDetails({ params }: { params: Promise<{ id: strin
     const resolvedParams = use(params)
     const [product, setProduct] = useState<any>(null)
     const [relatedProducts, setRelatedProducts] = useState<any[]>([])
+    const [displayedSimilar, setDisplayedSimilar] = useState(20)
     const [user, setUser] = useState<any>(null)
     const [quantity, setQuantity] = useState(1)
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -53,13 +54,13 @@ export default function ProductDetails({ params }: { params: Promise<{ id: strin
             ].filter(Boolean)
             setImages(productImages)
 
-            // Load related products (same category)
+            // Load related products (same category) - load more for pagination
             const { data: related } = await supabase
                 .from('products')
                 .select('*, categories(name)')
                 .eq('category_id', data.category_id)
                 .neq('id', data.id)
-                .limit(8)
+                .limit(100) // Load up to 100 for pagination
             if (related) setRelatedProducts(related)
         }
     }
@@ -462,7 +463,7 @@ export default function ProductDetails({ params }: { params: Promise<{ id: strin
                     <section className="mt-20">
                         <h2 className="text-3xl font-bold mb-8 text-white">Similar Products</h2>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
-                            {relatedProducts.map((prod) => (
+                            {relatedProducts.slice(0, displayedSimilar).map((prod) => (
                                 <ProductCard
                                     key={prod.id}
                                     product={prod}
@@ -475,6 +476,17 @@ export default function ProductDetails({ params }: { params: Promise<{ id: strin
                                 />
                             ))}
                         </div>
+
+                        {relatedProducts.length > displayedSimilar && (
+                            <div className="text-center mt-8">
+                                <button
+                                    onClick={() => setDisplayedSimilar(prev => prev + 20)}
+                                    className="bg-white text-black px-8 py-3 rounded-full hover:bg-gray-200 transition font-medium"
+                                >
+                                    Show More
+                                </button>
+                            </div>
+                        )}
                     </section>
                 )}
             </div>
