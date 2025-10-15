@@ -22,7 +22,7 @@ export default function Invoice({ order, user, isAdmin = false }: InvoiceProps) 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice - ${order.id}</title>
+    <title>Invoice - ${order.order_id}</title>
     <style>
         * {
             margin: 0;
@@ -270,7 +270,7 @@ export default function Invoice({ order, user, isAdmin = false }: InvoiceProps) 
         <div class="header">
             <div class="header-left">
                 <h1>INVOICE</h1>
-                <p style="font-family: monospace;">Order ID: ${order.id}</p>
+                <p style="font-family: monospace;">Order ID: ${order.order_id}</p>
                 <p>Date: ${new Date(order.created_at).toLocaleDateString('en-IN')}</p>
             </div>
             <div class="header-right">
@@ -400,7 +400,7 @@ export default function Invoice({ order, user, isAdmin = false }: InvoiceProps) 
             <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-black">
                 <div>
                     <h1 className="text-3xl font-bold text-black mb-2">INVOICE</h1>
-                    <p className="text-sm text-gray-700 font-mono">Order ID: {order.id}</p>
+                    <p className="text-sm text-gray-700 font-mono">Order ID: {order.order_id}</p>
                     <p className="text-sm text-gray-600">Date: {new Date(order.created_at).toLocaleDateString('en-IN')}</p>
                 </div>
                 <div className="text-right">

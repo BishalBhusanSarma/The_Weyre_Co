@@ -65,6 +65,7 @@ export default function Orders() {
                 )
             `)
             .eq('user_id', userId)
+            .eq('payment_status', 'paid')  // Only show paid orders
             .order('created_at', { ascending: false })
 
         if (data) {
@@ -138,13 +139,13 @@ export default function Orders() {
                 `- ${item.products.name} (Qty: ${item.quantity})`
             ).join('\n')
 
-            const subject = `Order Issue Report - Order ID: ${order.id.slice(0, 8)}`
+            const subject = `Order Issue Report - Order ID: ${order.order_id}`
             const body = `Dear The Weyre Co. Team,
 
 I am writing to report an issue with my recent order.
 
 Order Details:
-- Order ID: ${order.id}
+- Order ID: ${order.order_id}
 - Order Date: ${new Date(order.created_at).toLocaleDateString()}
 - Total Amount: ₹${order.total.toFixed(2)}
 
@@ -262,7 +263,7 @@ ${user.name}`
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 pb-4 border-b border-gray-800">
                                     <div className="mb-3 md:mb-0">
                                         <p className="text-xs md:text-sm text-gray-400">Order ID</p>
-                                        <p className="text-sm md:text-base text-white font-mono">{order.id.slice(0, 8)}</p>
+                                        <p className="text-sm md:text-base text-white font-mono">{order.order_id}</p>
                                     </div>
                                     <div className="mb-3 md:mb-0">
                                         <p className="text-xs md:text-sm text-gray-400">Date</p>

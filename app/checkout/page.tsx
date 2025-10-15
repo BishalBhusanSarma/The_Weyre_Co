@@ -19,7 +19,7 @@ export default function Checkout() {
     const [couponDiscount, setCouponDiscount] = useState(0)
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
     const [couponError, setCouponError] = useState('')
-    const [testMode, setTestMode] = useState(false) // For testing without payment
+    const [cashfree, setCashfree] = useState<any>(null)
 
     const router = useRouter()
 
@@ -27,7 +27,20 @@ export default function Checkout() {
 
     useEffect(() => {
         checkUser()
+        initializeCashfree()
     }, [])
+
+    const initializeCashfree = async () => {
+        try {
+            const { load } = await import('@cashfreepayments/cashfree-js')
+            const cashfreeInstance = await load({
+                mode: 'sandbox' // Change to 'production' for live
+            })
+            setCashfree(cashfreeInstance)
+        } catch (error) {
+            console.error('Failed to load Cashfree SDK:', error)
+        }
+    }
 
     const checkUser = () => {
         const userData = localStorage.getItem('user')
@@ -156,17 +169,26 @@ export default function Checkout() {
     const finalTotal = total - couponDiscount // Delivery charge is discounted
 
     const placeOrder = async () => {
-        if (!user || cartItems.length === 0) return
+        if (!user || cartItems.length === 0) {
+            alert('Please ensure you are logged in and have items in cart')
+            return
+        }
+
+        // Check if Cashfree SDK is loaded
+        if (!cashfree) {
+            alert('Payment system is loading. Please wait a moment and try again.')
+            return
+        }
 
         try {
             // Generate custom order ID
             const customOrderId = generateOrderId()
 
-            // Create order in database
+            // Create order in database (let Supabase generate UUID for id)
             const { data: order, error: orderError } = await supabase
                 .from('orders')
                 .insert([{
-                    id: customOrderId,
+                    order_id: customOrderId,
                     user_id: user.id,
                     total: finalTotal,
                     actual_total: actualTotal + totalDeliveryCharge,
@@ -174,15 +196,17 @@ export default function Checkout() {
                     coupon_code: appliedCoupon?.code || null,
                     coupon_discount: couponDiscount || 0,
                     delivery_charge: totalDeliveryCharge, // Save total delivery charge for admin tracking
-                    rto_charge: 0,
                     delivery_status: 'pending',
-                    payment_status: testMode ? 'paid' : 'pending',
+                    payment_status: 'pending',
                     shipping_address: `${user.address}, ${user.city}, ${user.state} ${user.zipcode}`
                 }])
                 .select()
                 .single()
 
-            if (orderError) throw orderError
+            if (orderError) {
+                console.error('Order creation error:', orderError)
+                throw new Error(`Failed to create order: ${orderError.message || JSON.stringify(orderError)}`)
+            }
 
             // Create order items from cart
             const orderItems = cartItems.map(item => ({
@@ -216,25 +240,15 @@ export default function Checkout() {
                     .eq('id', appliedCoupon.id)
             }
 
-            // Clear cart after successful order
-            await supabase
-                .from('cart')
-                .delete()
-                .eq('user_id', user.id)
+            // Don't clear cart yet - wait for payment confirmation
+            // Cart will be cleared after successful payment in verify-payment API
 
-            // If test mode, redirect to orders page
-            if (testMode) {
-                alert('Test order placed successfully!')
-                router.push('/orders')
-                return
-            }
-
-            // Initiate Cashfree payment
+            // Create Cashfree payment order
             const cashfreeResponse = await fetch('/api/cashfree/create-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: order.id,
+                    orderId: order.order_id,
                     orderAmount: finalTotal,
                     customerName: user.name,
                     customerEmail: user.email,
@@ -243,22 +257,33 @@ export default function Checkout() {
             })
 
             if (!cashfreeResponse.ok) {
-                throw new Error('Failed to create payment order')
+                const errorData = await cashfreeResponse.json()
+                console.error('Cashfree API Error:', errorData)
+                const errorMsg = errorData.message || errorData.details?.message || 'Unknown error'
+                throw new Error(`Failed to create payment order: ${errorMsg}`)
             }
 
             const cashfreeData = await cashfreeResponse.json()
 
-            // Redirect to Cashfree payment page
-            if (cashfreeData.payment_link) {
-                window.location.href = cashfreeData.payment_link
-            } else if (cashfreeData.payment_session_id) {
-                window.location.href = cashfreeData.payment_session_id
-            } else {
-                throw new Error('No payment URL received')
+            if (!cashfreeData.payment_session_id) {
+                throw new Error('No payment session ID received')
             }
-        } catch (error) {
+
+            // Initialize Cashfree checkout
+            if (!cashfree) {
+                throw new Error('Cashfree SDK not loaded')
+            }
+
+            const checkoutOptions = {
+                paymentSessionId: cashfreeData.payment_session_id,
+                redirectTarget: '_self'
+            }
+
+            cashfree.checkout(checkoutOptions)
+        } catch (error: any) {
             console.error('Order error:', error)
-            alert('Failed to place order. Please try again.')
+            const errorMessage = error?.message || error?.toString() || 'Unknown error occurred'
+            alert(`Failed to place order: ${errorMessage}\n\nPlease try again or contact support.`)
         }
     }
 
@@ -472,24 +497,11 @@ export default function Checkout() {
                                     </div>
                                 </div>
 
-                                {/* Test Mode Toggle */}
-                                <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-500/20 rounded-lg">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={testMode}
-                                            onChange={(e) => setTestMode(e.target.checked)}
-                                            className="w-4 h-4"
-                                        />
-                                        <span className="text-sm text-yellow-400">Test Mode (Skip Payment)</span>
-                                    </label>
-                                </div>
-
                                 <button
                                     onClick={placeOrder}
                                     className="w-full bg-white text-black py-4 rounded-full hover:bg-gray-200 transition font-medium mb-3"
                                 >
-                                    {testMode ? 'Place Test Order' : 'Proceed to Payment'}
+                                    Proceed to Payment
                                 </button>
 
                                 <Link href="/cart" className="block text-center text-gray-400 hover:text-white">

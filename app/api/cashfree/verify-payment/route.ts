@@ -29,26 +29,36 @@ export async function GET(request: NextRequest) {
 
         // Update order in database
         if (paymentData.order_status === 'PAID') {
-            await supabase
+            // Get order details to find user_id
+            const { data: order } = await supabase
+                .from('orders')
+                .select('user_id')
+                .eq('order_id', orderId)
+                .single()
+
+            // Update order status
+            const { error: updateError } = await supabase
                 .from('orders')
                 .update({
                     payment_status: 'paid',
-                    payment_id: paymentData.cf_order_id,
-                    cashfree_order_id: paymentData.cf_order_id,
+                    updated_at: new Date().toISOString()
                 })
-                .eq('id', orderId)
+                .eq('order_id', orderId)
 
-            // Record transaction
-            await supabase
-                .from('payment_transactions')
-                .insert({
-                    order_id: orderId,
-                    amount: paymentData.order_amount,
-                    payment_status: 'paid',
-                    payment_id: paymentData.cf_order_id,
-                    cashfree_order_id: paymentData.cf_order_id,
-                    transaction_data: paymentData,
-                })
+            if (updateError) {
+                console.error('Error updating order:', updateError)
+            } else {
+                console.log('Order payment status updated to paid:', orderId)
+
+                // Clear cart after successful payment
+                if (order?.user_id) {
+                    await supabase
+                        .from('cart')
+                        .delete()
+                        .eq('user_id', order.user_id)
+                    console.log('Cart cleared for user:', order.user_id)
+                }
+            }
         }
 
         return NextResponse.json(paymentData)

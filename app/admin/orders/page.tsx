@@ -61,6 +61,7 @@ export default function AdminOrders() {
         // Filter by search query (order ID)
         if (searchQuery.trim()) {
             filtered = filtered.filter(order =>
+                order.order_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 order.id.toLowerCase().includes(searchQuery.toLowerCase())
             )
         }
@@ -353,7 +354,10 @@ export default function AdminOrders() {
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 pb-6 border-b border-gray-800">
                                     <div>
                                         <p className="text-sm text-gray-400 mb-1">Order ID</p>
-                                        <p className="font-mono text-sm font-bold break-all text-white">{order.id}</p>
+                                        <p className="font-mono text-sm font-bold break-all text-white">{order.order_id || order.id}</p>
+                                        {order.order_id && (
+                                            <p className="text-xs text-gray-500 mt-1">UUID: {order.id.substring(0, 8)}...</p>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-400 mb-1">Customer</p>
